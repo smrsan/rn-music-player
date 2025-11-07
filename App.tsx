@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { StyleSheet, View, StatusBar } from 'react-native';
 import { Audio } from 'expo-audio';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Screen, Song } from './types';
 import { SONGS } from './constants/songs';
 import LibraryScreen from './screens/LibraryScreen';
@@ -115,7 +116,7 @@ setIsPlaying(true);
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <View style={styles.playerContainer}>
         <View style={styles.contentContainer}>
@@ -128,7 +129,7 @@ setIsPlaying(true);
           </>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -136,13 +137,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   playerContainer: {
+    flex: 1,
     width: '100%',
     maxWidth: 420,
-    height: '100%',
+    alignSelf: 'center',
     backgroundColor: '#121212',
     overflow: 'hidden',
     flexDirection: 'column',
