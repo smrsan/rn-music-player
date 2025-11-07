@@ -3,19 +3,8 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Slider from '@react-native-community/slider';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Song } from '../types';
-
-interface PlayerScreenProps {
-  song: Song;
-  isPlaying: boolean;
-  onTogglePlay: () => void;
-  onNext: () => void;
-  onPrev: () => void;
-  onBack: () => void;
-  progress: number;
-  duration: number;
-  onSeek: (time: number) => void;
-}
+import { useRouter } from 'expo-router';
+import { usePlayer } from '../../context/PlayerContext';
 
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
@@ -23,14 +12,26 @@ const formatTime = (seconds: number) => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-const PlayerScreen: React.FC<PlayerScreenProps> = ({ song, isPlaying, onTogglePlay, onNext, onPrev, onBack, progress, duration, onSeek }) => {
+const PlayerScreen: React.FC = () => {
+  const {
+    currentSong,
+    isPlaying,
+    progress,
+    duration,
+    togglePlayPause,
+    playNext,
+    playPrev,
+    handleSeek,
+  } = usePlayer();
+  const router = useRouter();
+
   return (
     <LinearGradient
       colors={['#464646', '#121212']}
       style={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.headerButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
           <MaterialIcons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Now Playing</Text>
@@ -41,10 +42,10 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ song, isPlaying, onTogglePl
 
       <View style={styles.mainContent}>
         <View style={styles.albumArtContainer}>
-          <Image source={{ uri: song.albumArtUrl }} style={styles.albumArt} />
+          <Image source={{ uri: currentSong.albumArtUrl }} style={styles.albumArt} />
         </View>
-        <Text style={styles.title}>{song.title}</Text>
-        <Text style={styles.artist}>{song.artist}</Text>
+        <Text style={styles.title}>{currentSong.title}</Text>
+        <Text style={styles.artist}>{currentSong.artist}</Text>
       </View>
 
       <View style={styles.footer}>
@@ -54,7 +55,7 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ song, isPlaying, onTogglePl
             minimumValue={0}
             maximumValue={duration || 0}
             value={progress}
-            onSlidingComplete={onSeek}
+            onSlidingComplete={handleSeek}
             minimumTrackTintColor="#10B981"
             maximumTrackTintColor="#444"
             thumbTintColor="#10B981"
@@ -66,13 +67,13 @@ const PlayerScreen: React.FC<PlayerScreenProps> = ({ song, isPlaying, onTogglePl
         </View>
 
         <View style={styles.controlsContainer}>
-          <TouchableOpacity onPress={onPrev} style={styles.controlButton}>
+          <TouchableOpacity onPress={playPrev} style={styles.controlButton}>
             <MaterialIcons name="skip-previous" size={40} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={onTogglePlay} style={styles.playButton}>
+          <TouchableOpacity onPress={togglePlayPause} style={styles.playButton}>
             <MaterialIcons name={isPlaying ? 'pause' : 'play-arrow'} size={48} color="#121212" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={onNext} style={styles.controlButton}>
+          <TouchableOpacity onPress={playNext} style={styles.controlButton}>
             <MaterialIcons name="skip-next" size={40} color="white" />
           </TouchableOpacity>
         </View>

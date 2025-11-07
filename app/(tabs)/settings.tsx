@@ -1,11 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import ToggleSwitch from '../components/ToggleSwitch';
-
-interface SettingsScreenProps {
-  onBack: () => void;
-}
+import { useRouter } from 'expo-router';
+import ToggleSwitch from '../../components/ToggleSwitch';
 
 const SettingsItem: React.FC<{ label: string; hasToggle?: boolean }> = ({ label, hasToggle }) => (
   <View style={styles.settingsItem}>
@@ -22,11 +19,13 @@ const LegalItem: React.FC<{ label: string; }> = ({ label }) => (
 );
 
 
-const SettingsScreen: React.FC<SettingsScreenProps> = ({ onBack }) => {
+const SettingsScreen: React.FC = () => {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>

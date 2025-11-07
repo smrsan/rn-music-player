@@ -1,15 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, TextInput, FlatList } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Song } from '../types';
-import SoundWaveVisualization from '../components/SoundWaveVisualization';
-
-interface LibraryScreenProps {
-  songs: Song[];
-  onSelectSong: (song: Song) => void;
-  currentSong: Song;
-  isPlaying: boolean;
-}
+import { useRouter } from 'expo-router';
+import { Song } from '../../types';
+import { usePlayer } from '../../context/PlayerContext';
+import SoundWaveVisualization from '../../components/SoundWaveVisualization';
+import { SONGS } from '../../constants/songs';
 
 const SongItem: React.FC<{ song: Song; onSelect: () => void; isPlaying: boolean; }> = ({ song, onSelect, isPlaying }) => (
   <TouchableOpacity onPress={onSelect} style={styles.songItem}>
@@ -28,13 +24,20 @@ const SongItem: React.FC<{ song: Song; onSelect: () => void; isPlaying: boolean;
   </TouchableOpacity>
 );
 
-const LibraryScreen: React.FC<LibraryScreenProps> = ({ songs, onSelectSong, currentSong, isPlaying }) => {
+const LibraryScreen: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const { currentSong, isPlaying, handleSelectSong } = usePlayer();
+  const router = useRouter();
 
-  const filteredSongs = songs.filter(song =>
+  const filteredSongs = SONGS.filter(song =>
     song.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     song.artist.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const onSongPress = (song: Song) => {
+    handleSelectSong(song);
+    router.push('/player');
+  };
 
   return (
     <View style={styles.container}>
@@ -62,7 +65,7 @@ const LibraryScreen: React.FC<LibraryScreenProps> = ({ songs, onSelectSong, curr
         renderItem={({ item }) => (
           <SongItem
             song={item}
-            onSelect={() => onSelectSong(item)}
+            onSelect={() => onSongPress(item)}
             isPlaying={isPlaying && currentSong.id === item.id}
           />
         )}

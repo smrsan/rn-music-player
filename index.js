@@ -1,8 +1,4 @@
-import { registerRootComponent } from 'expo';
-
-import App from './App';
-
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+// Use the expo-router entry when using file-based routing under `app/`.
+// This makes Metro load the router entry which reads the `app/` directory.
+// Having a custom `index.js` that imports `./App` will fail if `App` doesn't exist.
+import "expo-router/entry";
