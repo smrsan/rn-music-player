@@ -25,6 +25,31 @@ const PlayerScreen: React.FC = () => {
   } = usePlayer();
   const router = useRouter();
 
+  if (!currentSong) {
+    return (
+      <LinearGradient
+        colors={['#464646', '#121212']}
+        style={styles.container}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+            <MaterialIcons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Now Playing</Text>
+          <View style={styles.headerButton} />
+        </View>
+        <View style={styles.emptyState}>
+          <MaterialIcons name="music-off" size={64} color="#6B7280" />
+          <Text style={styles.emptyTitle}>No song selected</Text>
+          <Text style={styles.emptyBody}>Pick a track from your library to start listening.</Text>
+          <TouchableOpacity onPress={() => router.replace('/')} style={styles.emptyButton}>
+            <Text style={styles.emptyButtonText}>Go to Library</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    );
+  }
+
   return (
     <LinearGradient
       colors={['#464646', '#121212']}
@@ -42,10 +67,10 @@ const PlayerScreen: React.FC = () => {
 
       <View style={styles.mainContent}>
         <View style={styles.albumArtContainer}>
-          <Image source={{ uri: currentSong.albumArtUrl }} style={styles.albumArt} />
+          <Image source={{ uri: currentSong.albumArtUrl ?? `https://picsum.photos/seed/rnmusic-${currentSong.id}/400` }} style={styles.albumArt} />
         </View>
         <Text style={styles.title}>{currentSong.title}</Text>
-        <Text style={styles.artist}>{currentSong.artist}</Text>
+        <Text style={styles.artist}>{currentSong.artist ?? 'Unknown Artist'}</Text>
       </View>
 
       <View style={styles.footer}>
@@ -169,6 +194,32 @@ const styles = StyleSheet.create({
     height: 72,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  emptyTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  emptyBody: {
+    color: '#B2B2B2',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyButton: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  emptyButtonText: {
+    color: '#121212',
+    fontWeight: '600',
   },
 });
 

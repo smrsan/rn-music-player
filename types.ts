@@ -1,9 +1,9 @@
 
 export interface Song {
-  id: number;
+  id: string;
   title: string;
-  artist: string;
-  albumArtUrl: string;
+  artist?: string;
+  albumArtUrl?: string;
   duration: number; // in seconds
   audioUrl: string;
 }
