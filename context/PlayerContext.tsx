@@ -1,137 +1,153 @@
-import React, { createContext, useState, useCallback, useRef, useEffect, useContext } from 'react';
-import { Audio } from 'expo-audio';
-import { Song } from '../types';
-import { SONGS } from '../constants/songs';
+import React, {
+    createContext,
+    useState,
+    useCallback,
+    useRef,
+    useEffect,
+    useContext,
+} from "react";
+import {
+    useAudioPlayer,
+    useAudioPlayerStatus,
+    setAudioModeAsync,
+} from "expo-audio";
+import { Song } from "../types";
+import { SONGS } from "../constants/songs";
 
 interface PlayerContextData {
-  currentSong: Song;
-  isPlaying: boolean;
-  progress: number;
-  duration: number;
-  handleSelectSong: (song: Song) => void;
-  togglePlayPause: () => void;
-  playNext: () => void;
-  playPrev: () => void;
-  handleSeek: (time: number) => void;
+    currentSong: Song;
+    isPlaying: boolean;
+    progress: number;
+    duration: number;
+    handleSelectSong: (song: Song) => void;
+    togglePlayPause: () => void;
+    playNext: () => void;
+    playPrev: () => void;
+    handleSeek: (time: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextData>({} as PlayerContextData);
 
-export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentSong, setCurrentSong] = useState<Song>(SONGS[1]);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [progress, setProgress] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const soundRef = useRef<Audio.Sound | null>(null);
-  const [isSoundLoaded, setIsSoundLoaded] = useState(false);
+export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({
+    children,
+}) => {
+    const [currentSong, setCurrentSong] = useState<Song>(SONGS[1]);
+    const player = useAudioPlayer(currentSong?.audioUrl ?? null, {
+        updateInterval: 200,
+        downloadFirst: true,
+        keepAudioSessionActive: true,
+    });
+    const status = useAudioPlayerStatus(player);
+    const shouldAutoplayRef = useRef(true);
+    const didFinishRef = useRef(false);
+    const isLoaded = status?.isLoaded ?? false;
+    const isPlaying = status?.playing ?? false;
+    const progress = status?.currentTime ?? 0;
+    const duration = status?.duration ?? currentSong?.duration ?? 0;
 
-  const playNext = useCallback(() => {
-    const currentIndex = SONGS.findIndex(song => song.id === currentSong.id);
-    const nextIndex = (currentIndex + 1) % SONGS.length;
-    setCurrentSong(SONGS[nextIndex]);
-    setIsPlaying(true);
-  }, [currentSong]);
+    useEffect(() => {
+        setAudioModeAsync({
+            playsInSilentMode: true,
+            allowsRecording: false,
+            shouldPlayInBackground: true,
+            shouldRouteThroughEarpiece: false,
+            interruptionMode: "mixWithOthers",
+            interruptionModeAndroid: "duckOthers",
+        }).catch((error) => {
+            console.warn("Failed to configure audio mode", error);
+        });
+    }, []);
 
-  useEffect(() => {
-    const onPlaybackStatusUpdate = (status: any) => {
-      if (status.isLoaded) {
-        setIsSoundLoaded(true);
-        setProgress(status.positionMillis / 1000);
-        setDuration(status.durationMillis / 1000);
-        if (status.didJustFinish) {
-          playNext();
+    useEffect(() => {
+        if (!isLoaded || !shouldAutoplayRef.current) return;
+        player.play();
+        shouldAutoplayRef.current = false;
+    }, [isLoaded, player]);
+
+    const queueSong = useCallback((song: Song, shouldAutoplay = true) => {
+        shouldAutoplayRef.current = shouldAutoplay;
+        setCurrentSong(song);
+    }, []);
+
+    const playNext = useCallback(() => {
+        const currentIndex = SONGS.findIndex(
+            (song) => song.id === currentSong.id
+        );
+        const nextIndex = (currentIndex + 1) % SONGS.length;
+        queueSong(SONGS[nextIndex], true);
+    }, [currentSong, queueSong]);
+
+    const handleSelectSong = useCallback(
+        (song: Song) => {
+            queueSong(song, true);
+        },
+        [queueSong]
+    );
+
+    const togglePlayPause = useCallback(() => {
+        if (isPlaying) {
+            shouldAutoplayRef.current = false;
+            player.pause();
+            return;
         }
-      } else {
-        setIsSoundLoaded(false);
-      }
-    };
 
-    soundRef.current?.setOnPlaybackStatusUpdate(onPlaybackStatusUpdate);
-
-    return () => {
-      soundRef.current?.setOnPlaybackStatusUpdate(null);
-    };
-  }, [playNext]);
-
-  useEffect(() => {
-    const loadSound = async () => {
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-      }
-      if (currentSong) {
-        try {
-          const sound = new Audio.Sound();
-          soundRef.current = sound;
-          await sound.loadAsync(
-            { uri: currentSong.audioUrl },
-            { shouldPlay: isPlaying }
-          );
-        } catch (error) {
-          console.error("Error loading sound:", error);
+        if (!isLoaded) {
+            shouldAutoplayRef.current = true;
+            return;
         }
-      }
-    };
 
-    loadSound();
+        shouldAutoplayRef.current = false;
+        player.play();
+    }, [isLoaded, isPlaying, player]);
 
-    return () => {
-      soundRef.current?.unloadAsync();
-    };
-  }, [currentSong]);
+    const playPrev = useCallback(() => {
+        const currentIndex = SONGS.findIndex(
+            (song) => song.id === currentSong.id
+        );
+        const prevIndex = (currentIndex - 1 + SONGS.length) % SONGS.length;
+        queueSong(SONGS[prevIndex], true);
+    }, [currentSong, queueSong]);
 
-  useEffect(() => {
-    if (soundRef.current && isSoundLoaded) {
-      if (isPlaying) {
-        soundRef.current.playAsync();
-      } else {
-        soundRef.current.pauseAsync();
-      }
-    }
-  }, [isPlaying, isSoundLoaded]);
+    const handleSeek = useCallback(
+        (newTime: number) => {
+            if (!isLoaded) return;
+            player.seekTo(newTime).catch((error) => {
+                console.warn("Failed to seek audio", error);
+            });
+        },
+        [isLoaded, player]
+    );
 
-  const handleSelectSong = useCallback((song: Song) => {
-    setCurrentSong(song);
-    setIsPlaying(true);
-  }, []);
+    useEffect(() => {
+        if (status?.didJustFinish && !didFinishRef.current) {
+            didFinishRef.current = true;
+            shouldAutoplayRef.current = true;
+            playNext();
+        } else if (!status?.didJustFinish) {
+            didFinishRef.current = false;
+        }
+    }, [status?.didJustFinish, playNext]);
 
-  const togglePlayPause = useCallback(() => {
-    if (!currentSong) return;
-    setIsPlaying(prev => !prev);
-  }, [currentSong]);
-
-  const playPrev = useCallback(() => {
-    const currentIndex = SONGS.findIndex(song => song.id === currentSong.id);
-    const prevIndex = (currentIndex - 1 + SONGS.length) % SONGS.length;
-    setCurrentSong(SONGS[prevIndex]);
-    setIsPlaying(true);
-  }, [currentSong]);
-
-  const handleSeek = (newTime: number) => {
-    if (soundRef.current) {
-      soundRef.current.setPositionAsync(newTime * 1000);
-    }
-  };
-
-  return (
-    <PlayerContext.Provider
-      value={{
-        currentSong,
-        isPlaying,
-        progress,
-        duration,
-        handleSelectSong,
-        togglePlayPause,
-        playNext,
-        playPrev,
-        handleSeek,
-      }}
-    >
-      {children}
-    </PlayerContext.Provider>
-  );
+    return (
+        <PlayerContext.Provider
+            value={{
+                currentSong,
+                isPlaying,
+                progress,
+                duration,
+                handleSelectSong,
+                togglePlayPause,
+                playNext,
+                playPrev,
+                handleSeek,
+            }}
+        >
+            {children}
+        </PlayerContext.Provider>
+    );
 };
 
 export const usePlayer = () => {
-  const context = useContext(PlayerContext);
-  return context;
+    const context = useContext(PlayerContext);
+    return context;
 };
